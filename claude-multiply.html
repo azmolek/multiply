@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dynamic Multiplication Table</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    td {
+      text-align: center;
+      padding: 0;
+    }
+    .legend-cell {
+      width: 75px;
+      height: 30px;
+      text-align: center;
+      font-size: 12pt;
+      padding: 5px;
+      cursor: pointer;
+    }
+    .color-input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <label for="base">Number Base (2-16):</label>
+    <input type="number" id="base" min="2" max="16" value="10">
+  </div>
+  <div>
+    <label for="power">Power of Significant Digit (0-4):</label>
+    <input type="number" id="power" min="0" max="4" value="1">
+  </div>
+  <div>
+    <label for="size">Table Size (8-256):</label>
+    <input type="number" id="size" min="8" max="256" value="100">
+  </div>
+  <div>
+    <label for="valuesControl">Values:</label>
+    <select id="valuesControl">
+      <option value="show">Show</option>
+      <option value="hide" selected>Hide</option>
+    </select>
+  </div>
+  <div>
+    <label for="cellSize">Cell Size:</label>
+    <select id="cellSize">
+      <option value="huge">Huge</option>
+      <option value="normal">Normal</option>
+      <option value="small" selected>Small</option>
+      <option value="micro">Micro</option>
+      <option value="pixel">Pixel</option>
+    </select>
+  </div>
+  <br>
+  <table id="legendTable"></table>
+  <br>
+  <div id="tableContainer"></div>
+
+  <script>
+    const baseInput = document.getElementById('base');
+    const powerInput = document.getElementById('power');
+    const sizeInput = document.getElementById('size');
+    const valuesControl = document.getElementById('valuesControl');
+    const cellSizeSelect = document.getElementById('cellSize');
+    const legendTable = document.getElementById('legendTable');
+
+    let colorCodes = [
+      'black', 'white', 'red', 'blue', 'gold',
+      'slateblue', 'coral', 'forestgreen', 'lemonchiffon', 'tan',
+      'darkgrey', 'magenta', 'springgreen', 'teal', 'pink', 'sienna'
+    ];
+
+    let textColors = [];
+
+    // Generate the table on page load
+    generateTable();
+
+    // Add event listeners to input controls
+    baseInput.addEventListener('change', generateTable);
+    powerInput.addEventListener('change', generateTable);
+    sizeInput.addEventListener('change', generateTable);
+    valuesControl.addEventListener('change', handleValuesChange);
+    cellSizeSelect.addEventListener('change', handleCellSizeChange);
+
+    function handleValuesChange() {
+      const cellSize = cellSizeSelect.value;
+      if (valuesControl.value === 'show' && cellSize !== 'huge') {
+        cellSizeSelect.value = 'normal';
+      }
+      generateTable();
+    }
+
+    function handleCellSizeChange() {
+      const cellSize = cellSizeSelect.value;
+      if (['small', 'micro', 'pixel'].includes(cellSize)) {
+        valuesControl.value = 'hide';
+      }
+      generateTable();
+    }
+
+    function generateTable() {
+      const base = parseInt(baseInput.value);
+      const power = parseInt(powerInput.value);
+      const size = parseInt(sizeInput.value);
+      const valuesOption = valuesControl.value;
+      const cellSize = cellSizeSelect.value;
+
+      textColors = new Array(base).fill('black');
+      textColors[0] = 'white'; // Set white text for 0 by default
+
+      // Generate legend table
+      let legendHtml = '<tr>';
+      for (let i = 0; i < base; i++) {
+        const color = colorCodes[i];
+        const textColor = textColors[i];
+        legendHtml += `<td class="legend-cell" style="background-color: ${color}; color: ${textColor};" data-index="${i}">${i}</td>`;
+      }
+      legendHtml += '</tr><tr>';
+      for (let i = 0; i < base; i++) {
+        const color = colorCodes[i];
+        legendHtml += `<td><input type="text" class="color-input" value="${color}" data-index="${i}"></td>`;
+      }
+      legendHtml += '</tr>';
+      legendTable.innerHTML = legendHtml;
+
+      // Add event listeners to legend cells
+      const legendCells = document.querySelectorAll('.legend-cell');
+      legendCells.forEach(cell => {
+        cell.addEventListener('click', () => {
+          const index = parseInt(cell.getAttribute('data-index'));
+          textColors[index] = textColors[index] === 'black' ? 'white' : 'black';
+          cell.style.color = textColors[index];
+          generateMainTable();
+        });
+      });
+
+      // Add event listeners to color inputs
+      const colorInputs = document.querySelectorAll('.color-input');
+      colorInputs.forEach(input => {
+        input.addEventListener('change', () => {
+          const index = parseInt(input.getAttribute('data-index'));
+          const newColor = input.value.trim();
+
+          if (isValidColor(newColor) && !isDuplicateColor(newColor, index)) {
+            colorCodes[index] = newColor;
+            updateColor(index, newColor);
+            generateMainTable();
+          } else {
+            input.value = 'invalid';
+            setTimeout(() => {
+              input.value = colorCodes[index];
+            }, 3000);
+          }
+        });
+      });
+
+      generateMainTable();
+    }
+
+    function updateColor(index, color) {
+      const legendCell = document.querySelector(`.legend-cell[data-index="${index}"]`);
+      const colorInput = document.querySelector(`.color-input[data-index="${index}"]`);
+
+      legendCell.style.backgroundColor = color;
+      colorInput.value = color;
+    }
+
+    function isValidColor(color) {
+      const div = document.createElement('div');
+      div.style.backgroundColor = color;
+      return div.style.backgroundColor !== '';
+    }
+
+    function isDuplicateColor(color, index) {
+      const visibleColors = colorCodes.slice(0, parseInt(baseInput.value));
+      return visibleColors.indexOf(color) !== -1 && visibleColors.indexOf(color) !== index;
+    }
+
+    function generateMainTable() {
+      const base = parseInt(baseInput.value);
+      const power = parseInt(powerInput.value);
+      const size = parseInt(sizeInput.value);
+      const valuesOption = valuesControl.value;
+      const cellSize = cellSizeSelect.value;
+
+      let cellWidth = '10px';
+      let cellHeight = '10px';
+      let fontSize = valuesOption === 'show' ? '8pt' : '0pt';
+
+      switch (cellSize) {
+        case 'huge':
+          cellWidth = '25px';
+          cellHeight = '25px';
+          fontSize = valuesOption === 'show' ? '10pt' : '0pt';
+          break;
+        case 'small':
+          cellWidth = '5px';
+          cellHeight = '5px';
+          fontSize = '0pt';
+          break;
+        case 'micro':
+          cellWidth = '2px';
+          cellHeight = '2px';
+          fontSize = '0pt';
+          break;
+        case 'pixel':
+          cellWidth = '1px';
+          cellHeight = '1px';
+          fontSize = '0pt';
+          break;
+      }
+
+      let tableHtml = '<table>';
+      for (let i = 1; i <= size; i++) {
+        tableHtml += '<tr>';
+        for (let j = 1; j <= size; j++) {
+          const result = i * j;
+          const significantDigit = Math.floor((result / Math.pow(base, power)) % base);
+          const color = colorCodes[significantDigit];
+          const textColor = textColors[significantDigit];
+          tableHtml += `<td style="background-color: ${color}; color: ${textColor}; font-size: ${fontSize}; width: ${cellWidth}; height: ${cellHeight};">${result}</td>`;
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</table>';
+
+      document.getElementById('tableContainer').innerHTML = tableHtml;
+    }
+  </script>
+</body>
+</html>
